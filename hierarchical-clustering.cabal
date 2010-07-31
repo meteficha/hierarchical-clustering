@@ -14,3 +14,4 @@ Cabal-version:       >=1.2
 Library
   Exposed-modules: Data.Clustering.Hierarchical
   Build-depends: base == 4.*
+  GHC-Options: -Wall
