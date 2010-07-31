@@ -27,3 +27,17 @@ instance Traversable (Clustered score) where
     traverse f (Branch s c1 c2) = Branch s <$> traverse f c1 <*> traverse f c2
 
 
+-- | The linkage type determines how the distance between
+-- clusters will be calculated.
+data Linkage =
+    SingleLinkage   -- ^ The distance between two clusters @c1@
+                    -- and @c2@ is the /minimum/ distance between
+                    -- an element of @c1@ and an element of @c2@.
+  | CompleteLinkage -- ^ The distance between two clusters @c1@
+                    -- and @c2@ is the /maximum/ distance between
+                    -- an element of @c1@ and an element of @c2@.
+  | AverageLinkage  -- ^ The distance between two clusters @c1@
+                    -- and @c2@ is the /arithmetic average/
+                    -- between the distances of all elements in
+                    -- @c1@ to all elements in @c2@.
+    deriving (Eq, Ord, Show, Enum)
