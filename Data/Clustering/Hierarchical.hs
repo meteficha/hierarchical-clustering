@@ -8,6 +8,8 @@ import Data.Foldable
 import Data.Monoid
 import Data.Traversable
 
+import Data.Clustering.Hierarchical.Internal.DistanceMatrix
+
 -- | Data structure for storing hierarchical clusters.
 data Dendrogram score datum =
     Leaf datum
@@ -65,3 +67,13 @@ data Linkage =
   -- code for \"average linkage\" on ai4r library implementing
   -- what we call here @FakeAverageLinkage@ and not UPGMA.
     deriving (Eq, Ord, Show, Enum)
+
+
+clusterDistance :: (Fractional d, Ord d) => Linkage -> ClusterDistance d
+clusterDistance SingleLinkage      = \_ (_, d1) (_, d2) _ -> d1 `min` d2
+clusterDistance CompleteLinkage    = \_ (_, d1) (_, d2) _ -> d1 `max` d2
+clusterDistance UPGMA              = \_ (b1,d1) (b2,d2) _ ->
+                                       let n1 = fromIntegral (size b1)
+                                           n2 = fromIntegral (size b2)
+                                       in (n1 * d1 + n2 * d2) / (n1 + n2)
+clusterDistance FakeAverageLinkage = \_ (_, d1) (_, d2) _ -> (d1 + d2) / 2
