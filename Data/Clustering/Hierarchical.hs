@@ -1,5 +1,6 @@
 module Data.Clustering.Hierarchical
     (Dendrogram(..)
+    ,Linkage(..)
     ) where
 
 import Control.Applicative
@@ -30,14 +31,37 @@ instance Traversable (Dendrogram score) where
 -- | The linkage type determines how the distance between
 -- clusters will be calculated.
 data Linkage =
-    SingleLinkage   -- ^ The distance between two clusters @c1@
-                    -- and @c2@ is the /minimum/ distance between
-                    -- an element of @c1@ and an element of @c2@.
-  | CompleteLinkage -- ^ The distance between two clusters @c1@
-                    -- and @c2@ is the /maximum/ distance between
-                    -- an element of @c1@ and an element of @c2@.
-  | AverageLinkage  -- ^ The distance between two clusters @c1@
-                    -- and @c2@ is the /arithmetic average/
-                    -- between the distances of all elements in
-                    -- @c1@ to all elements in @c2@.
+    SingleLinkage
+  -- ^ The distance between two clusters @a@ and @b@ is the
+  -- /minimum/ distance between an element of @a@ and an element
+  -- of @b@.
+  | CompleteLinkage
+  -- ^ The distance between two clusters @a@ and @b@ is the
+  -- /maximum/ distance between an element of @a@ and an element
+  -- of @b@.
+  | UPGMA
+  -- ^ Unweighted Pair Group Method with Arithmetic mean, also
+  -- called \"average linkage\".  The distance between two
+  -- clusters @a@ and @b@ is the /arithmetic average/ between the
+  -- distances of all elements in @a@ to all elements in @b@.
+  | FakeAverageLinkage
+  -- ^ This method is usually wrongly called \"average linkage\".
+  -- The distance between cluster @a = a1 U a2@ (that is, cluster
+  -- @a@ was formed by the linkage of clusters @a1@ and @a2@) and
+  -- an old cluster @b@ is @(d(a1,b) + d(a2,b)) / 2@.  So when
+  -- clustering two elements to create a cluster, this method is
+  -- the same as UPGMA.  However, in general when joining two
+  -- clusters this method assigns equal weights to @a1@ and @a2@,
+  -- while UPGMA assigns weights proportional to the number of
+  -- elements in each cluster.  See, for example:
+  --
+  -- *
+  -- <http://www.cs.tau.ac.il/~rshamir/algmb/00/scribe00/html/lec08/node21.html>,
+  -- which defines the real UPGMA and gives the equation to
+  -- calculate the distance between an old and a new cluster.
+  --
+  -- *
+  -- <http://github.com/JadeFerret/ai4r/blob/master/lib/ai4r/clusterers/average_linkage.rb>,
+  -- code for \"average linkage\" on ai4r library implementing
+  -- what we call here @FakeAverageLinkage@ and not UPGMA.
     deriving (Eq, Ord, Show, Enum)
