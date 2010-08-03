@@ -8,6 +8,7 @@ module Data.Clustering.Hierarchical.Internal.DistanceMatrix
     ,mergeClusters
     ) where
 
+import qualified Data.IntMap as IM
 import Control.Monad (forM_, when)
 import Control.Monad.ST (ST)
 import Data.Array.ST (STArray, newArray, newListArray, readArray, writeArray)
@@ -27,7 +28,7 @@ data Cluster = Cluster {key  :: !Item  -- ^ Element used as key.
                deriving (Eq, Ord, Show)
 
 -- | An element of a cluster.
-type Item = Int
+type Item = IM.Key
 
 -- | Creates a singleton cluster.
 singleton :: Item -> Cluster
