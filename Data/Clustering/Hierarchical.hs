@@ -11,21 +11,24 @@ import Data.Traversable
 import Data.Clustering.Hierarchical.Internal.DistanceMatrix
 
 -- | Data structure for storing hierarchical clusters.
-data Dendrogram score datum =
-    Leaf datum
-  | Branch score (Dendrogram score datum) (Dendrogram score datum)
+data Dendrogram d a =
+    Leaf a
+    -- ^ The leaf contains the item @a@ itself.
+  | Branch d (Dendrogram d a) (Dendrogram d a)
+    -- ^ Each branch connects two clusters/dendrograms that are
+    -- @d@ distance apart.
     deriving (Eq, Ord, Show)
 
--- | Does not recalculate the scores!
-instance Functor (Dendrogram score) where
+-- | Does not recalculate the distances!
+instance Functor (Dendrogram d) where
     fmap f (Leaf d)         = Leaf (f d)
     fmap f (Branch s c1 c2) = Branch s (fmap f c1) (fmap f c2)
 
-instance Foldable (Dendrogram score) where
+instance Foldable (Dendrogram d) where
     foldMap f (Leaf d)         = f d
     foldMap f (Branch _ c1 c2) = foldMap f c1 `mappend` foldMap f c2
 
-instance Traversable (Dendrogram score) where
+instance Traversable (Dendrogram d) where
     traverse f (Leaf d)         = Leaf <$> f d
     traverse f (Branch s c1 c2) = Branch s <$> traverse f c1 <*> traverse f c2
 
@@ -69,11 +72,13 @@ data Linkage =
     deriving (Eq, Ord, Show, Enum)
 
 
+-- | Calculates distances between clusters according to the
+-- chosen linkage.
 clusterDistance :: (Fractional d, Ord d) => Linkage -> ClusterDistance d
 clusterDistance SingleLinkage      = \_ (_, d1) (_, d2) _ -> d1 `min` d2
 clusterDistance CompleteLinkage    = \_ (_, d1) (_, d2) _ -> d1 `max` d2
+clusterDistance FakeAverageLinkage = \_ (_, d1) (_, d2) _ -> (d1 + d2) / 2
 clusterDistance UPGMA              = \_ (b1,d1) (b2,d2) _ ->
                                        let n1 = fromIntegral (size b1)
                                            n2 = fromIntegral (size b2)
                                        in (n1 * d1 + n2 * d2) / (n1 + n2)
-clusterDistance FakeAverageLinkage = \_ (_, d1) (_, d2) _ -> (d1 + d2) / 2
