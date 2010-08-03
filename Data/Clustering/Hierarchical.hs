@@ -1,12 +1,17 @@
 module Data.Clustering.Hierarchical
     (Dendrogram(..)
     ,Linkage(..)
+    ,completeDendrogram
     ) where
 
-import Control.Applicative
-import Data.Foldable
-import Data.Monoid
-import Data.Traversable
+import qualified Data.IntMap as IM
+import Control.Applicative ((<$>), (<*>))
+import Control.Monad.ST (runST)
+import Data.Array (listArray, (!))
+import Data.Foldable (Foldable (..))
+import Data.Function (on)
+import Data.Monoid (mappend)
+import Data.Traversable (Traversable(..))
 
 import Data.Clustering.Hierarchical.Internal.DistanceMatrix
 
@@ -82,3 +87,31 @@ clusterDistance UPGMA              = \_ (b1,d1) (b2,d2) _ ->
                                        let n1 = fromIntegral (size b1)
                                            n2 = fromIntegral (size b2)
                                        in (n1 * d1 + n2 * d2) / (n1 + n2)
+
+
+-- | Calculates a complete, rooted dendrogram for a list of items and a distance
+-- function.
+completeDendrogram :: (Fractional d, Ord d) => Linkage ->
+                      [a] -> (a -> a -> d) -> Dendrogram d a
+completeDendrogram linkage items dist = runST (act ())
+    where
+      n     = length items
+      cdist = clusterDistance linkage
+      act _ = do
+        let xs = listArray (1, n) items
+        fromDistance (dist `on` (xs !)) n >>= go xs (n-1) IM.empty
+      go xs i ds dm = do
+        ((c1,c2), distance) <- findMin dm
+        cu <- mergeClusters cdist dm (c1,c2)
+        let dendro c = case size c of
+                         1 -> Leaf (xs ! key c)
+                         _ -> ds IM.! key c
+            d1 = dendro c1
+            d2 = dendro c2
+            du = Branch distance d1 d2
+        case i of
+          1 -> return du
+          _ -> let ds' = IM.insert (key cu) du $
+                         IM.delete (key c1) $
+                         IM.delete (key c2) ds
+               in go xs (i-1) ds' dm
