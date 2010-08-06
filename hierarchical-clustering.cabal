@@ -24,6 +24,12 @@ Description:
   time improvements (e.g. using a finger tree to avoid traversing
   the whole matrix on every iteration just to see what the
   minimum is).
+  .
+  Changes in version 0.3:
+  .
+  * Added function @cutAt@.
+  .
+  * Fixed complexity in Haddock comments.
 
 Library
   Exposed-modules:

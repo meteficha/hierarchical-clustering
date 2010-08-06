@@ -55,10 +55,10 @@ elements = go []
 -- dendro = Branch 0.8
 --            (Branch 0.5
 --              (Branch 0.2
---                (Leaf 'A')
---                (Leaf 'B'))
---              (Leaf 'C'))
---            (Leaf 'D')
+--                (Leaf \'A\')
+--                (Leaf \'B\'))
+--              (Leaf \'C\'))
+--            (Leaf \'D\')
 -- @
 --
 -- Then:
