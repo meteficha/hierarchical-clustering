@@ -1,7 +1,17 @@
 module Data.Clustering.Hierarchical
-    (Dendrogram(..)
+    (-- * Dendrogram data type
+     Dendrogram(..)
+    ,elements
+    ,cutAt
+     -- * Linkage data type
     ,Linkage(..)
-    ,completeDendrogram
+     -- * Generic clustering function
+    ,dendrogram
+     -- * Functions for specific linkages
+    ,singleLinkage
+    ,completeLinkage
+    ,upgma
+    ,fakeAverageLinkage
     ) where
 
 import qualified Data.IntMap as IM
@@ -15,7 +25,11 @@ import Data.Traversable (Traversable(..))
 
 import Data.Clustering.Hierarchical.Internal.DistanceMatrix
 
--- | Data structure for storing hierarchical clusters.
+-- | Data structure for storing hierarchical clusters.  The
+-- distance between clusters is stored on the branches.
+-- Distances between leafs are the distances between the elements
+-- on those leafs, while distances between branches are defined
+-- by the linkage used (see 'Linkage').
 data Dendrogram d a =
     Leaf a
     -- ^ The leaf contains the item @a@ itself.
@@ -23,6 +37,45 @@ data Dendrogram d a =
     -- ^ Each branch connects two clusters/dendrograms that are
     -- @d@ distance apart.
     deriving (Eq, Ord, Show)
+
+-- | List of elements in a dendrogram.
+elements :: Dendrogram d a -> [a]
+elements = go []
+    where
+      go acc (Leaf x)       = x : acc
+      go acc (Branch _ l r) = go (go acc r) l
+
+-- | @dendro \`cutAt\` threshold@ cuts the dendrogram @dendro@ at
+-- all branches which have distances strictly greater than
+-- @threshold@.
+--
+-- For example, suppose we have
+--
+-- @
+-- dendro = Branch 0.8
+--            (Branch 0.5
+--              (Branch 0.2
+--                (Leaf 'A')
+--                (Leaf 'B'))
+--              (Leaf 'C'))
+--            (Leaf 'D')
+-- @
+--
+-- Then:
+--
+-- @
+-- dendro \`cutAt\` 0.9 == dendro \`cutAt\` 0.8 == [dendro] -- no changes
+-- dendro \`cutAt\` 0.7 == dendro \`cutAt\` 0.5 == [Branch 0.5 (Branch 0.2 (Leaf \'A\') (Leaf \'B\')) (Leaf \'C\'), Leaf \'D\']
+-- dendro \`cutAt\` 0.4 == dendro \`cutAt\` 0.2 == [Branch 0.2 (Leaf \'A\') (Leaf \'B\'), Leaf \'C\', Leaf \'D\']
+-- dendro \`cutAt\` 0.1 == [Leaf \'A\', Leaf \'B\', Leaf \'C\', Leaf \'D\'] -- no branches at all
+-- @
+cutAt :: Ord d => Dendrogram d a -> d -> [Dendrogram d a]
+cutAt dendro threshold = go [] dendro
+    where
+      go acc x@(Leaf _)                        = x : acc
+      go acc x@(Branch d l r) | d <= threshold = x : acc
+                              | otherwise      = go (go acc r) l  -- cut!
+
 
 -- | Does not recalculate the distances!
 instance Functor (Dendrogram d) where
@@ -39,7 +92,8 @@ instance Traversable (Dendrogram d) where
 
 
 -- | The linkage type determines how the distance between
--- clusters will be calculated.
+-- clusters will be calculated.  These are the linkage types
+-- currently available on this library.
 data Linkage =
     SingleLinkage
   -- ^ The distance between two clusters @a@ and @b@ is the
@@ -77,27 +131,73 @@ data Linkage =
     deriving (Eq, Ord, Show, Enum)
 
 
--- | Calculates distances between clusters according to the
--- chosen linkage.
-clusterDistance :: (Fractional d, Ord d) => Linkage -> ClusterDistance d
-clusterDistance SingleLinkage      = \_ (_, d1) (_, d2) _ -> d1 `min` d2
-clusterDistance CompleteLinkage    = \_ (_, d1) (_, d2) _ -> d1 `max` d2
-clusterDistance FakeAverageLinkage = \_ (_, d1) (_, d2) _ -> (d1 + d2) / 2
-clusterDistance UPGMA              = \_ (b1,d1) (b2,d2) _ ->
-                                       let n1 = fromIntegral (size b1)
-                                           n2 = fromIntegral (size b2)
-                                       in (n1 * d1 + n2 * d2) / (n1 + n2)
+-- Some cluster distances
+cdistSingleLinkage      :: Ord d => ClusterDistance d
+cdistSingleLinkage      = \_ (_, d1) (_, d2) _ -> d1 `min` d2
+
+cdistCompleteLinkage    :: Ord d => ClusterDistance d
+cdistCompleteLinkage    = \_ (_, d1) (_, d2) _ -> d1 `max` d2
+
+cdistUPGMA              :: Fractional d => ClusterDistance d
+cdistUPGMA              = \_ (b1,d1) (b2,d2) _ ->
+                            let n1 = fromIntegral (size b1)
+                                n2 = fromIntegral (size b2)
+                            in (n1 * d1 + n2 * d2) / (n1 + n2)
+
+cdistFakeAverageLinkage :: Fractional d => ClusterDistance d
+cdistFakeAverageLinkage = \_ (_, d1) (_, d2) _ -> (d1 + d2) / 2
 
 
--- | Calculates a complete, rooted dendrogram for a list of items and a distance
--- function.
-completeDendrogram :: (Fractional d, Ord d) => Linkage ->
-                      [a] -> (a -> a -> d) -> Dendrogram d a
-completeDendrogram linkage items dist = runST (act ())
+-- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
+-- of items and a linkage type.  If your distance type has an
+-- 'Ord' instance but not a 'Fractional' one, then please use
+-- specific functions 'singleLinkage' or 'completeLinkage' that
+-- have less restrictive types.
+dendrogram :: (Ord d, Fractional d)
+           => Linkage        -- ^ Linkage type to be used.
+           -> [a]            -- ^ Items to be clustered.
+           -> (a -> a -> d)  -- ^ Distance function between items.
+           -> Dendrogram d a -- ^ Complete dendrogram.
+dendrogram linkage = dendrogram' cdist
     where
-      n     = length items
-      cdist = clusterDistance linkage
-      act _ = do
+      cdist = case linkage of
+                SingleLinkage      -> cdistSingleLinkage
+                CompleteLinkage    -> cdistCompleteLinkage
+                FakeAverageLinkage -> cdistFakeAverageLinkage
+                UPGMA              -> cdistUPGMA
+
+-- | /O(n^3)/ Like 'dendrogram', but specialized to single
+-- linkage (see 'SingleLinkage') which does not require
+-- 'Fractional'.
+singleLinkage :: Ord d => [a] -> (a -> a -> d) -> Dendrogram d a
+singleLinkage = dendrogram' cdistSingleLinkage
+
+-- | /O(n^3)/ Like 'dendrogram', but specialized to complete
+-- linkage (see 'CompleteLinkage') which does not require
+-- 'Fractional'.
+completeLinkage :: Ord d => [a] -> (a -> a -> d) -> Dendrogram d a
+completeLinkage = dendrogram' cdistCompleteLinkage
+
+-- | /O(n^3)/ Like 'dendrogram', but specialized to 'UPGMA'.
+upgma :: (Fractional d, Ord d) => [a] -> (a -> a -> d) -> Dendrogram d a
+upgma = dendrogram' cdistUPGMA
+
+-- | /O(n^3)/ Like 'dendrogram', but specialized to fake average
+-- linkage (see 'FakeAverageLinkage').
+fakeAverageLinkage :: (Fractional d, Ord d) => [a]
+                   -> (a -> a -> d) -> Dendrogram d a
+fakeAverageLinkage = dendrogram' cdistFakeAverageLinkage
+
+
+
+-- | Worker function to create dendrograms based on a
+-- 'ClusterDistance' (and not a 'Linkage').
+dendrogram' :: Ord d => ClusterDistance d
+            -> [a] -> (a -> a -> d) -> Dendrogram d a
+dendrogram' cdist items dist = runST (act ())
+    where
+      n = length items
+      act _noMonomorphismRestrictionPlease = do
         let xs = listArray (1, n) items
         fromDistance (dist `on` (xs !)) n >>= go xs (n-1) IM.empty
       go xs i ds dm = do
