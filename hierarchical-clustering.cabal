@@ -1,5 +1,5 @@
 Name:                hierarchical-clustering
-Version:             0.3
+Version:             0.3.0.1
 Synopsis:            Algorithms for single, average/UPGMA and complete linkage clustering.
 License:             BSD3
 License-file:        LICENSE
@@ -25,11 +25,23 @@ Description:
   the whole matrix on every iteration just to see what the
   minimum is).
   .
+  Changes in version 0.3.0.1:
+  .
+  * Listed changes of unreleased version 0.2.
+  .
   Changes in version 0.3:
   .
   * Added function @cutAt@.
   .
   * Fixed complexity in Haddock comments.
+  .
+  Changes in version 0.2:
+  .
+  * Added function @elements@.
+  .
+  * Added separate functions for each linkage type.  This may be
+    useful if you want to create a dendrogram and your distance
+    data type isn't an instance of @Floating@.
 
 Library
   Exposed-modules:
