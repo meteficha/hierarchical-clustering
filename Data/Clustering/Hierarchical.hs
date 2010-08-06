@@ -133,19 +133,19 @@ data Linkage =
 
 -- Some cluster distances
 cdistSingleLinkage      :: Ord d => ClusterDistance d
-cdistSingleLinkage      = \_ (_, d1) (_, d2) _ -> d1 `min` d2
+cdistSingleLinkage      = \(_, d1) (_, d2) -> d1 `min` d2
 
 cdistCompleteLinkage    :: Ord d => ClusterDistance d
-cdistCompleteLinkage    = \_ (_, d1) (_, d2) _ -> d1 `max` d2
+cdistCompleteLinkage    = \(_, d1) (_, d2) -> d1 `max` d2
 
 cdistUPGMA              :: Fractional d => ClusterDistance d
-cdistUPGMA              = \_ (b1,d1) (b2,d2) _ ->
+cdistUPGMA              = \(b1,d1) (b2,d2) ->
                             let n1 = fromIntegral (size b1)
                                 n2 = fromIntegral (size b2)
                             in (n1 * d1 + n2 * d2) / (n1 + n2)
 
 cdistFakeAverageLinkage :: Fractional d => ClusterDistance d
-cdistFakeAverageLinkage = \_ (_, d1) (_, d2) _ -> (d1 + d2) / 2
+cdistFakeAverageLinkage = \(_, d1) (_, d2) -> (d1 + d2) / 2
 
 
 -- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list

@@ -95,11 +95,9 @@ findMin dm = readSTRef (active dm) >>= go1 . combinations
 -- | Type for functions that calculate distances between
 -- clusters.
 type ClusterDistance d =
-       Cluster        -- ^ Cluster A
-    -> (Cluster, d)   -- ^ Cluster B1 and distance from A to B1
+       (Cluster, d)   -- ^ Cluster B1 and distance from A to B1
     -> (Cluster, d)   -- ^ Cluster B2 and distance from A to B2
-    -> Cluster        -- ^ Cluster B = B1 U B2
-    -> d              -- ^ Distance from A to B.
+    -> d              -- ^ Distance from A to (B1 U B2).
 
 
 -- | /O(n)/ Merges two clusters, returning the new cluster and
@@ -120,10 +118,10 @@ mergeClusters cdist (DM matrix_ active_ clusters_) (b1, b2) = do
   -- Calculate new distances
   activeV <- readSTRef active_
   forM_ activeV $ \k -> when (k `notElem` [b1k, b2k]) $ do
-      a      <- readArray clusters_ k
+      -- a   <- readArray clusters_ k
       d_a_b1 <- readArray matrix_ $ ix k b1k
       d_a_b2 <- readArray matrix_ $ ix k b2k
-      let d = cdist a (b1, d_a_b1) (b2, d_a_b2) bu
+      let d = cdist (b1, d_a_b1) (b2, d_a_b2)
       writeArray matrix_ (ix k km) d
 
   -- Save new cluster, invalidate old one
