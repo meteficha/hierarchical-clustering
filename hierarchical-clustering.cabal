@@ -47,5 +47,5 @@ Library
   Exposed-modules:
     Data.Clustering.Hierarchical,
     Data.Clustering.Hierarchical.Internal.DistanceMatrix
-  Build-depends: base == 4.*, array == 0.3.*, containers == 0.3.*
+  Build-depends: base == 4.*, array == 0.3.*, containers >= 0.3 && < 0.5
   GHC-options: -Wall
