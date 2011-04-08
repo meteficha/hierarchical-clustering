@@ -1,5 +1,5 @@
 Name:                hierarchical-clustering
-Version:             0.3.0.1
+Version:             0.3.1
 Synopsis:            Algorithms for single, average/UPGMA and complete linkage clustering.
 License:             BSD3
 License-file:        LICENSE
@@ -24,6 +24,12 @@ Description:
   time improvements (e.g. using a finger tree to avoid traversing
   the whole matrix on every iteration just to see what the
   minimum is).
+  .
+  Changes in version 0.3.1:
+  .
+  * Works with containers 0.4 (thanks, Doug Beardsley).
+  .
+  * Removed some internal unnecessary overheads and added some strictness.
   .
   Changes in version 0.3.0.1:
   .
