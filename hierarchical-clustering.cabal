@@ -49,6 +49,12 @@ Description:
     useful if you want to create a dendrogram and your distance
     data type isn't an instance of @Floating@.
 
+
+Source-repository head
+  type: darcs
+  location: http://patch-tag.com/r/felipe/hierarchical-clustering
+
+
 Library
   Exposed-modules:
     Data.Clustering.Hierarchical,
