@@ -86,6 +86,7 @@ findMin dm = readSTRef (active dm) >>= go1 . combinations
       choose b i m' = if m' < snd b then (i, m') else b
       go1 (i:is)   = readArray matrix_ i >>= go2 is . (,) i
       go1 []       = mkErr "findMin: empty DistMatrix"
+      go2 i b | i `seq` b `seq` False = undefined
       go2 (i:is) b = readArray matrix_ i >>= go2 is . choose b i
       go2 []     b = do c1 <- readArray (clusters dm) (fst $ fst b)
                         c2 <- readArray (clusters dm) (snd $ fst b)
@@ -122,7 +123,7 @@ mergeClusters cdist (DM matrix_ active_ clusters_) (b1, b2) = do
       d_a_b1 <- readArray matrix_ $ ix k b1k
       d_a_b2 <- readArray matrix_ $ ix k b2k
       let d = cdist (b1, d_a_b1) (b2, d_a_b2)
-      writeArray matrix_ (ix k km) d
+      d `seq` writeArray matrix_ (ix k km) d
 
   -- Save new cluster, invalidate old one
   writeArray clusters_ km bu

@@ -200,18 +200,18 @@ dendrogram' cdist items dist = runST (act ())
       act _noMonomorphismRestrictionPlease = do
         let xs = listArray (1, n) items
         fromDistance (dist `on` (xs !)) n >>= go xs (n-1) IM.empty
-      go xs i ds dm = do
+      go xs i ds dm = xs `seq` i `seq` ds `seq` dm `seq` do
         ((c1,c2), distance) <- findMin dm
         cu <- mergeClusters cdist dm (c1,c2)
         let dendro c = case size c of
-                         1 -> Leaf (xs ! key c)
+                         1 -> Leaf $! xs ! key c
                          _ -> ds IM.! key c
             d1 = dendro c1
             d2 = dendro c2
-            du = Branch distance d1 d2
+            du = d1 `seq` d2 `seq` Branch distance d1 d2
         case i of
           1 -> return du
           _ -> let ds' = IM.insert (key cu) du $
                          IM.delete (key c1) $
                          IM.delete (key c2) ds
-               in go xs (i-1) ds' dm
+               in du `seq` go xs (i-1) ds' dm
