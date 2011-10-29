@@ -72,6 +72,14 @@ basicDendrogramTests linkage = do
      \xs dist ->
          not (null (xs :: [Double])) ==>
          elements (f xs ((abs .) . dist)) `isPermutationOf` xs
+  prop "works for examples where all elements have the same distance" $
+     \xs fixedDist ->
+         not (null (xs :: [Char])) ==>
+         let okay (Leaf y) (x:xs)   | x == y         = Just xs
+             okay (Branch d l r) xs | d == fixedDist = okay l xs >>= okay r
+             okay _ _ = Nothing
+         in okay (f xs (\_ _ -> fixedDist `asTypeOf` zero)) xs == Just []
+
 
 isPermutationOf :: Ord a => [a] -> [a] -> Bool
 isPermutationOf xs ys = sort xs == sort ys
