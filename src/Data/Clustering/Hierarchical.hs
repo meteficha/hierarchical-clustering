@@ -194,6 +194,7 @@ fakeAverageLinkage = dendrogram' cdistFakeAverageLinkage
 -- 'ClusterDistance' (and not a 'Linkage').
 dendrogram' :: Ord d => ClusterDistance d
             -> [a] -> (a -> a -> d) -> Dendrogram d a
+dendrogram' _ [] _ = error "Data.Clustering.Hierarchical: empty input list"
 dendrogram' cdist items dist = runST (act ())
     where
       n = length items
