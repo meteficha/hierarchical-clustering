@@ -63,22 +63,23 @@ test_dendrogram = do
 
 basicDendrogramTests :: Linkage -> Specs
 basicDendrogramTests linkage = do
-  let f = dendrogram linkage
+  let f xs = dendrogram linkage xs
   it "fails for an empty input" $
      assertErrors (f [] (\_ _ -> zero))
   it "works for one element" $
      Leaf () == f [()] (\_ _ -> zero)
   prop "always returns the elements we gave" $
      \xs dist ->
-         not (null (xs :: [Double])) ==>
-         elements (f xs ((abs .) . dist)) `isPermutationOf` xs
+         let dist' x y = abs (dist x y) :: Double
+         in not (null (xs :: [Double])) ==>
+            elements (f xs dist') `isPermutationOf` xs
   prop "works for examples where all elements have the same distance" $
      \xs fixedDist ->
-         not (null (xs :: [Char])) ==>
-         let okay (Leaf y) (x:xs)   | x == y         = Just xs
-             okay (Branch d l r) xs | d == fixedDist = okay l xs >>= okay r
+         let okay :: Dendrogram Rational Char -> [Char] -> Maybe [Char]
+             okay (Leaf z) (y:ys)   | z == y         = Just ys
+             okay (Branch d l r) ys | d == fixedDist = okay l ys >>= okay r
              okay _ _ = Nothing
-         in okay (f xs (\_ _ -> fixedDist `asTypeOf` zero)) xs == Just []
+         in not (null xs) ==> okay (f xs (\_ _ -> fixedDist)) xs == Just []
 
 
 isPermutationOf :: Ord a => [a] -> [a] -> Bool
