@@ -7,7 +7,7 @@ Author:              Felipe Almeida Lessa
 Maintainer:          felipe.lessa@gmail.com
 Category:            Clustering
 Build-type:          Simple
-Cabal-version:       >= 1.6
+Cabal-version:       >= 1.8
 Description:
   This package provides a function to create a dendrogram from a
   list of items and a distance function between them.  Initially
@@ -60,5 +60,22 @@ Library
   Exposed-modules:
     Data.Clustering.Hierarchical,
     Data.Clustering.Hierarchical.Internal.DistanceMatrix
-  Build-depends: base == 4.*, array == 0.3.*, containers >= 0.3 && < 0.5
+  Build-depends:
+      base       == 4.*
+    , array      == 0.3.*
+    , containers >= 0.3 && < 0.5
+  GHC-options: -Wall
+
+Test-suite runtests
+  Type: exitcode-stdio-1.0
+  Hs-source-dirs: tests
+  Main-is: runtests.hs
+  Build-depends:
+      base       == 4.*
+
+    , hspec      == 0.9.*
+    , HUnit      == 1.2.*
+    , QuickCheck == 2.4.*
+
+    , hierarchical-clustering
   GHC-options: -Wall
