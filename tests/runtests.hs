@@ -2,6 +2,7 @@
 import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.List (sort)
+import Text.Printf (printf)
 import Text.Show.Functions ()
 
 -- from hspec
@@ -21,23 +22,53 @@ import Data.Clustering.Hierarchical
 
 main :: IO ()
 main = hspecX $ do
-         describe "dendrogram SingleLinkage" $ do
-           basicTests SingleLinkage
-         describe "dendrogram CompleteLinkage" $ do
-           basicTests CompleteLinkage
-         describe "dendrogram UPGMA" $ do
-           basicTests UPGMA
-         describe "dendrogram FakeAverageLinkage" $ do
-           basicTests FakeAverageLinkage
+         test_cutAt
+         test_dendrogram
 
-basicTests :: Linkage -> Specs
-basicTests linkage = do
+test_cutAt :: Specs
+test_cutAt =
+    describe "cutAt" $ do
+      let dendro      :: Dendrogram Double Char
+          dendro      = Branch 0.8 d_0_8_left d_0_8_right
+          d_0_8_left  =   Branch 0.5 d_0_5_left d_0_5_right
+          d_0_5_left  =     Branch 0.2 d_0_2_left d_0_2_right
+          d_0_2_left  =       Leaf 'A'
+          d_0_2_right =       Leaf 'B'
+          d_0_5_right =     Leaf 'C'
+          d_0_8_right =   Leaf 'D'
+
+      let testFor threshold expected =
+              it (printf "works for 'dendro' with threshold %0.1f" threshold) $
+                 dendro `cutAt` threshold ~?= expected
+
+      testFor 0.9 [dendro]
+      testFor 0.8 [dendro]
+      testFor 0.7 [d_0_8_left, d_0_8_right]
+      testFor 0.5 [d_0_8_left, d_0_8_right]
+      testFor 0.4 [d_0_5_left, d_0_5_right, d_0_8_right]
+      testFor 0.2 [d_0_5_left, d_0_5_right, d_0_8_right]
+      testFor 0.1 [d_0_2_left, d_0_2_right, d_0_5_right, d_0_8_right]
+
+test_dendrogram :: Specs
+test_dendrogram = do
+    describe "dendrogram SingleLinkage" $ do
+      basicDendrogramTests SingleLinkage
+    describe "dendrogram CompleteLinkage" $ do
+      basicDendrogramTests CompleteLinkage
+    describe "dendrogram UPGMA" $ do
+      basicDendrogramTests UPGMA
+    describe "dendrogram FakeAverageLinkage" $ do
+      basicDendrogramTests FakeAverageLinkage
+
+
+basicDendrogramTests :: Linkage -> Specs
+basicDendrogramTests linkage = do
   let f = dendrogram linkage
   it "fails for an empty input" $
      assertErrors (f [] (\_ _ -> zero))
   it "works for one element" $
      Leaf () == f [()] (\_ _ -> zero)
-  prop "returns the elements we gave" $
+  prop "always returns the elements we gave" $
      \xs dist ->
          not (null (xs :: [Double])) ==>
          elements (f xs ((abs .) . dist)) `isPermutationOf` xs
