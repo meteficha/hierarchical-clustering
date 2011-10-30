@@ -76,10 +76,9 @@ basicDendrogramTests f = do
   it "works for one element" $
      Leaf () == f [()] (\_ _ -> zero)
   prop "always returns the elements we gave" $
-     \xs dist ->
-         let dist' x y = abs (dist x y) :: Double
-         in not (null (xs :: [Double])) ==>
-            elements (f xs dist') `isPermutationOf` xs
+     \points ->
+         not (null points) ==>
+         elements (f points euclideanDist) `isPermutationOf` points
   prop "works for examples where all elements have the same distance" $
      \xs fixedDist ->
          let okay :: Dendrogram Double Char -> [Char] -> Maybe [Char]
@@ -91,6 +90,10 @@ basicDendrogramTests f = do
 
 isPermutationOf :: Ord a => [a] -> [a] -> Bool
 isPermutationOf xs ys = sort xs == sort ys
+
+euclideanDist :: (Double, Double) -> (Double, Double) -> Double
+euclideanDist (x1,y1) (x2,y2) = sqrt $ sq (x1-x2) + sq (y1-y2)
+    where sq x = x * x
 
 (~=) :: Double -> Double -> Bool
 a ~= b = abs (a - b) < 1e-5
