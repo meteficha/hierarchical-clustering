@@ -10,7 +10,7 @@ module Data.Clustering.Hierarchical.Internal.Optimal
 import Prelude hiding (pi)
 import Control.Applicative ((<$>))
 import Control.Arrow (first)
-import Control.Monad (forM, forM_, liftM3, when)
+import Control.Monad (forM_, liftM3, when)
 import Control.Monad.ST (ST, runST)
 import Data.Array (Array, listArray, (!))
 import Data.Array.ST (STUArray, newArray_, newListArray,
@@ -218,6 +218,8 @@ buildDendrogram pr = do
 --   /Computer Journal/ (British Computer Society) 16 (1):
 --   30-34.
 singleLinkage :: [a] -> (a -> a -> Double) -> Dendrogram Double a
+singleLinkage []  _   = mkErr "singleLinkage: empty input"
+singleLinkage [x] _   = Leaf x
 singleLinkage xs dist = runST (slink xs dist >>= buildDendrogram)
 
 
@@ -230,4 +232,6 @@ singleLinkage xs dist = runST (slink xs dist >>= buildDendrogram)
 --   complete link method\". /The Computer Journal/ (British
 --   Computer Society) 20 (4): 364-366.
 completeLinkage :: [a] -> (a -> a -> Double) -> Dendrogram Double a
+completeLinkage []  _   = mkErr "completeLinkage: empty input"
+completeLinkage [x] _   = Leaf x
 completeLinkage xs dist = runST (clink xs dist >>= buildDendrogram)
