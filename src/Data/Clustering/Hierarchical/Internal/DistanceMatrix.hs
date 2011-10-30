@@ -87,16 +87,24 @@ fromDistance dist n = do
 -- | /O(n^2)/ Returns the minimum distance of the distance
 -- matrix.  The first key given is less than the second key.
 findMin :: Ord d => DistMatrix s d -> ST s ((Cluster, Cluster), d)
-findMin dm = readSTRef (active dm) >>= go1 . combinations
+findMin dm = readSTRef (active dm) >>= go1
     where
       matrix_ = matrix dm
       choose b i m' = if m' < snd b then (i, m') else b
-      go1 (i:is)   = readArray matrix_ i >>= go2 is . (,) i
-      go1 []       = mkErr "findMin: empty DistMatrix"
-      go2 (i:is) !b = readArray matrix_ i >>= go2 is . choose b i
-      go2 []     !b = do c1 <- readArray (clusters dm) (fst $ fst b)
-                         c2 <- readArray (clusters dm) (snd $ fst b)
-                         return ((c1, c2), snd b)
+
+      go1 is@(i1:i2:_) = do di <- readArray matrix_ (i1, i2) -- initial
+                            ((b1, b2), d) <- go2 is ((i1, i2), di)
+                            c1 <- readArray (clusters dm) b1
+                            c2 <- readArray (clusters dm) b2
+                            return ((c1, c2), d)
+      go1 _            = mkErr "findMin: empty DistMatrix"
+
+      go2 (i1:is@(_:_)) !b = go3 i1 is b >>= go2 is
+      go2 _              b = return b
+
+      go3 i1 (i2:is) !b = readArray matrix_ (i1,i2) >>= go3 i1 is . choose b (i1,i2)
+      go3 _  []       b = return b
+
 
 
 -- | Type for functions that calculate distances between
