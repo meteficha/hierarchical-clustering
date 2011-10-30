@@ -9,12 +9,12 @@ module Data.Clustering.Hierarchical.Internal.DistanceMatrix
     ) where
 
 -- from base
-import Control.Monad (forM_, when)
+import Control.Monad (forM_)
 import Control.Monad.ST (ST, runST)
 import Data.Array (listArray, (!))
 import Data.Array.ST (STArray, newArray, newListArray, readArray, writeArray)
 import Data.Function (on)
-import Data.List (delete, tails)
+import Data.List (delete, tails, (\\))
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef)
 
 -- from containers
@@ -142,7 +142,7 @@ mergeClusters cdist (DM matrix_ active_ clusters_) (b1, b2) = do
 
   -- Calculate new distances
   activeV <- readSTRef active_
-  forM_ activeV $ \k -> when (k `notElem` [b1k, b2k]) $ do
+  forM_ (activeV \\ [b1k, b2k]) $ \k -> do
       -- a   <- readArray clusters_ k
       d_a_b1 <- readArray matrix_ $ ix k b1k
       d_a_b2 <- readArray matrix_ $ ix k b2k
