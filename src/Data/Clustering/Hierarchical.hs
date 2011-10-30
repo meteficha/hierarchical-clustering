@@ -62,10 +62,14 @@ cutAt dendro threshold = go [] dendro
 --   and time and gives the same answer as the naive algorithm
 --   using a distance matrix.
 --
--- ['CompleteLinkage'] /O(n^2)/ time and /O(n)/ space, using the
---   CLINK algorithm.  Note that this algorithm doesn't always
---   give the same answer as the naive algorithm using a distance
---   matrix, but it's much faster.
+-- ['CompleteLinkage'] /O(n^3)/ time and /O(n^2)/ space, using
+--   the naive algorithm with a distance matrix.  Use 'CLINK' if
+--   you need more performance.
+--
+-- [Complete linkage with 'CLINK'] /O(n^2)/ time and /O(n)/
+--   space, using the CLINK algorithm.  Note that this algorithm
+--   doesn't always give the same answer as the naive algorithm
+--   using a distance matrix, but it's much faster.
 --
 -- ['UPGMA'] /O(n^3)/ time and /O(n^2)/ space, using the naive
 --   algorithm with a distance matrix.
@@ -77,6 +81,7 @@ dendrogram :: Linkage              -- ^ Linkage type to be used.
            -> (a -> a -> Distance) -- ^ Distance function between items.
            -> Dendrogram a         -- ^ Complete dendrogram.
 dendrogram SingleLinkage      = O.singleLinkage
-dendrogram CompleteLinkage    = O.completeLinkage
+dendrogram CompleteLinkage    = DM.completeLinkage
+dendrogram CLINK              = O.completeLinkage
 dendrogram UPGMA              = DM.upgma
 dendrogram FakeAverageLinkage = DM.fakeAverageLinkage

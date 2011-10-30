@@ -52,6 +52,10 @@ data Linkage =
   -- ^ The distance between two clusters @a@ and @b@ is the
   -- /maximum/ distance between an element of @a@ and an element
   -- of @b@.
+  | CLINK
+  -- ^ The same as 'CompleteLinkage', but using the CLINK
+  -- algorithm.  It's much faster however doesn't always give the
+  -- best complete linkage dendrogram.
   | UPGMA
   -- ^ Unweighted Pair Group Method with Arithmetic mean, also
   -- called \"average linkage\".  The distance between two

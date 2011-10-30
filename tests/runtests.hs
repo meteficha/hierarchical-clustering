@@ -86,8 +86,10 @@ test_dendrogram = do
     describe "Optimal and DistanceMatrix" $ do
       let test f1 f2 = forAll nonNullLists $ \ps ->
                        f1 ps euclideanDist ==== f2 ps euclideanDist
-      prop "agree on singleLinkage"   $ test O.singleLinkage   DM.singleLinkage
-      prop "agree on completeLinkage" $ test O.completeLinkage DM.completeLinkage
+      prop "agree on singleLinkage"   $ test O.singleLinkage DM.singleLinkage
+      it "agree on completeLinkage" $
+         pending "This doesn't work because CLINK doesn't \
+                 \always give the best compete linkage."
 
 
 basicDendrogramTests :: (forall a. [a] -> (a -> a -> Distance) -> Dendrogram a) -> Specs
