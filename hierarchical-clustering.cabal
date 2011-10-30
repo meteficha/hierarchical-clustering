@@ -66,6 +66,7 @@ Library
   Exposed-modules:
     Data.Clustering.Hierarchical,
     Data.Clustering.Hierarchical.Internal.DistanceMatrix,
+    Data.Clustering.Hierarchical.Internal.Optimal,
     Data.Clustering.Hierarchical.Internal.Types
   Build-depends:
       base       == 4.*
