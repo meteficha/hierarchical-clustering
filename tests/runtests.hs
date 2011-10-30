@@ -1,7 +1,9 @@
+{-# LANGUAGE Rank2Types #-}
+
 -- from base
 import qualified Control.Exception as E
 import Control.Monad (when)
-import Data.List (sort)
+import Data.List (delete, sort)
 import Text.Printf (printf)
 import Text.Show.Functions ()
 
@@ -18,6 +20,8 @@ import Test.QuickCheck ((==>))
 
 -- from this package
 import Data.Clustering.Hierarchical
+import qualified Data.Clustering.Hierarchical.Internal.DistanceMatrix as DM
+import qualified Data.Clustering.Hierarchical.Internal.Optimal as O
 
 
 main :: IO ()
@@ -51,19 +55,22 @@ test_cutAt =
 
 test_dendrogram :: Specs
 test_dendrogram = do
-    describe "dendrogram SingleLinkage" $ do
-      basicDendrogramTests SingleLinkage
-    describe "dendrogram CompleteLinkage" $ do
-      basicDendrogramTests CompleteLinkage
-    describe "dendrogram UPGMA" $ do
-      basicDendrogramTests UPGMA
-    describe "dendrogram FakeAverageLinkage" $ do
-      basicDendrogramTests FakeAverageLinkage
+    describe "Optimal's singleLinkage" $ do
+      basicDendrogramTests O.singleLinkage
+    describe "Optimal's completeLinkage" $ do
+      basicDendrogramTests O.completeLinkage
+    describe "DistanceMatrix's singleLinkage" $ do
+      basicDendrogramTests DM.singleLinkage
+    describe "DistanceMatrix's completeLinkage" $ do
+      basicDendrogramTests DM.completeLinkage
+    describe "DistanceMatrix's upgma" $ do
+      basicDendrogramTests DM.upgma
+    describe "DistanceMatrix's fakeAverageLinkage" $ do
+      basicDendrogramTests DM.fakeAverageLinkage
 
 
-basicDendrogramTests :: Linkage -> Specs
-basicDendrogramTests linkage = do
-  let f xs = dendrogram linkage xs
+basicDendrogramTests :: (forall a. [a] -> (a -> a -> Double) -> Dendrogram Double a) -> Specs
+basicDendrogramTests f = do
   it "fails for an empty input" $
      assertErrors (f [] (\_ _ -> zero))
   it "works for one element" $
@@ -75,15 +82,18 @@ basicDendrogramTests linkage = do
             elements (f xs dist') `isPermutationOf` xs
   prop "works for examples where all elements have the same distance" $
      \xs fixedDist ->
-         let okay :: Dendrogram Rational Char -> [Char] -> Maybe [Char]
-             okay (Leaf z) (y:ys)   | z == y         = Just ys
-             okay (Branch d l r) ys | d == fixedDist = okay l ys >>= okay r
+         let okay :: Dendrogram Double Char -> [Char] -> Maybe [Char]
+             okay (Leaf z)       ys | z `elem` ys    = Just (delete z ys)
+             okay (Branch d l r) ys | d ~= fixedDist = okay l ys >>= okay r
              okay _ _ = Nothing
          in not (null xs) ==> okay (f xs (\_ _ -> fixedDist)) xs == Just []
 
 
 isPermutationOf :: Ord a => [a] -> [a] -> Bool
 isPermutationOf xs ys = sort xs == sort ys
+
+(~=) :: Double -> Double -> Bool
+a ~= b = abs (a - b) < 1e-5
 
 zero :: Double
 zero = 0
