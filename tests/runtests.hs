@@ -16,7 +16,7 @@ import Test.Hspec.QuickCheck (prop)
 import Test.HUnit
 
 -- from QuickCheck
-import Test.QuickCheck ((==>))
+import Test.QuickCheck ((==>), Property)
 
 -- from this package
 import Data.Clustering.Hierarchical
@@ -57,14 +57,29 @@ test_dendrogram :: Specs
 test_dendrogram = do
     describe "Optimal's singleLinkage" $ do
       basicDendrogramTests O.singleLinkage
+      prop "really is single linkage" $
+        propCorrectLinkage O.singleLinkage singleLink
+
     describe "Optimal's completeLinkage" $ do
       basicDendrogramTests O.completeLinkage
+      prop "really is complete linkage" $
+        propCorrectLinkage O.completeLinkage completeLink
+
     describe "DistanceMatrix's singleLinkage" $ do
       basicDendrogramTests DM.singleLinkage
+      prop "really is single linkage" $
+        propCorrectLinkage DM.singleLinkage singleLink
+
     describe "DistanceMatrix's completeLinkage" $ do
       basicDendrogramTests DM.completeLinkage
+      prop "really is complete linkage" $
+        propCorrectLinkage DM.completeLinkage completeLink
+
     describe "DistanceMatrix's upgma" $ do
       basicDendrogramTests DM.upgma
+      prop "really is UPGMA" $
+        propCorrectLinkage DM.upgma upgma
+
     describe "DistanceMatrix's fakeAverageLinkage" $ do
       basicDendrogramTests DM.fakeAverageLinkage
 
@@ -75,7 +90,7 @@ test_dendrogram = do
       prop "agree on completeLinkage" $ test O.completeLinkage DM.completeLinkage
 
 
-basicDendrogramTests :: (forall a. [a] -> (a -> a -> Double) -> Dendrogram a) -> Specs
+basicDendrogramTests :: (forall a. [a] -> (a -> a -> Distance) -> Dendrogram a) -> Specs
 basicDendrogramTests f = do
   it "fails for an empty input" $
      assertErrors (f [] (\_ _ -> zero))
@@ -93,11 +108,38 @@ basicDendrogramTests f = do
              okay _ _ = Nothing
          in not (null xs) ==> okay (f xs (\_ _ -> fixedDist)) xs == Just []
 
+----------------------------------------------------------------------
+
+type P = (Double, Double)
+
+propCorrectLinkage :: ([P] -> (P -> P -> Distance) -> Dendrogram P)
+                   -> (D P -> [P] -> [P] -> Distance)
+                   -> ([P] -> Property)
+propCorrectLinkage f link =
+    \xs -> length xs >= 2 ==> correctLinkage link d (f xs d)
+        where d = euclideanDist
+
+type D a = a -> a -> Distance
+
+correctLinkage :: (D a -> [a] -> [a] -> Distance) -> D a -> Dendrogram a -> Bool
+correctLinkage link dist = go
+    where
+      go (Branch d l r) = go l && go r &&
+                          link dist (elements l) (elements r) ~= d
+      go (Leaf _) = True
+
+singleLink, completeLink, upgma :: D a -> [a] -> [a] -> Distance
+singleLink   dist xs ys = minimum [x `dist` y | x <- xs, y <- ys]
+completeLink dist xs ys = maximum [x `dist` y | x <- xs, y <- ys]
+upgma        dist xs ys = sum [x `dist` y | x <- xs, y <- ys] /
+                          fromIntegral (length xs * length ys)
+
+----------------------------------------------------------------------
 
 isPermutationOf :: Ord a => [a] -> [a] -> Bool
 isPermutationOf xs ys = sort xs == sort ys
 
-euclideanDist :: (Double, Double) -> (Double, Double) -> Double
+euclideanDist :: P -> P -> Double
 euclideanDist (x1,y1) (x2,y2) = sqrt $ sq (x1-x2) + sq (y1-y2)
     where sq x = x * x
 
