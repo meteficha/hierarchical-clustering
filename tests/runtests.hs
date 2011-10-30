@@ -68,6 +68,12 @@ test_dendrogram = do
     describe "DistanceMatrix's fakeAverageLinkage" $ do
       basicDendrogramTests DM.fakeAverageLinkage
 
+    describe "Optimal and DistanceMatrix" $ do
+      let test f1 f2 = \ps -> length ps >= 2 ==>
+                              f1 ps euclideanDist ==== f2 ps euclideanDist
+      prop "agree on singleLinkage"   $ test O.singleLinkage   DM.singleLinkage
+      prop "agree on completeLinkage" $ test O.completeLinkage DM.completeLinkage
+
 
 basicDendrogramTests :: (forall a. [a] -> (a -> a -> Double) -> Dendrogram Double a) -> Specs
 basicDendrogramTests f = do
@@ -106,3 +112,12 @@ assertErrors x = do
     b <- E.catch (E.evaluate x >> return True)
                  (\(E.ErrorCall _) -> return False {- Ok -})
     when b $ assertFailure "Didn't raise an 'error'."
+
+
+-- | Compare two dendrograms without being concerned about
+-- permutations.
+(====) :: Eq a => Dendrogram Double a -> Dendrogram Double a -> Bool
+Leaf x1         ==== Leaf x2         = x1 == x2
+Branch d1 l1 r1 ==== Branch d2 l2 r2 = d1 ~= d2 && ((l1 ==== l2 && r1 ==== r2) ||
+                                                    (l1 ==== r2 && r1 ==== l2))
+_ ==== _ = False
