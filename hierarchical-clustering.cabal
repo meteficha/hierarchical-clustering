@@ -1,5 +1,5 @@
 Name:                hierarchical-clustering
-Version:             0.3.1.1
+Version:             0.3.1.2
 Synopsis:            Algorithms for single, average/UPGMA and complete linkage clustering.
 License:             BSD3
 License-file:        LICENSE
@@ -25,7 +25,7 @@ Description:
   the whole matrix on every iteration just to see what the
   minimum is).
   .
-  Changes in version 0.3.1.1:
+  Changes in version 0.3.1.2 (version 0.3.1.1 was skipped):
   .
   * Added tests for many things.  Use @cabal test@ =).
   .
@@ -53,6 +53,8 @@ Description:
     useful if you want to create a dendrogram and your distance
     data type isn't an instance of @Floating@.
 
+Extra-source-files:
+  tests/runtests.hs
 
 Source-repository head
   type: darcs
