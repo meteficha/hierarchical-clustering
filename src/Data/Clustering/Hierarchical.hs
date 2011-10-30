@@ -59,19 +59,19 @@ cutAt dendro threshold = go [] dendro
 --
 -- ['SingleLinkage'] /O(n^2)/ time and /O(n)/ space, using the
 --   SLINK algorithm.  This algorithm is optimal in both space
---   and time and gives the same answer as the naïve algorithm
+--   and time and gives the same answer as the naive algorithm
 --   using a distance matrix.
 --
 -- ['CompleteLinkage'] /O(n^2)/ time and /O(n)/ space, using the
 --   CLINK algorithm.  Note that this algorithm doesn't always
---   give the same answer as the naïve algorithm using a distance
+--   give the same answer as the naive algorithm using a distance
 --   matrix, but it's much faster.
 --
--- ['UPGMA'] /O(n^3)/ time and /O(n^2)/ space, using the naïve
+-- ['UPGMA'] /O(n^3)/ time and /O(n^2)/ space, using the naive
 --   algorithm with a distance matrix.
 --
 -- ['FakeAverageLinkage'] /O(n^3)/ time and /O(n^2)/ space, using
--- the naïve algorithm with a distance matrix.
+-- the naive algorithm with a distance matrix.
 dendrogram :: Linkage              -- ^ Linkage type to be used.
            -> [a]                  -- ^ Items to be clustered.
            -> (a -> a -> Distance) -- ^ Distance function between items.

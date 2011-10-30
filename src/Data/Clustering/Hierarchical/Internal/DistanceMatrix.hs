@@ -40,9 +40,9 @@ type Item = IM.Key
 singleton :: Item -> Cluster
 singleton k = Cluster {key = k, size = 1}
 
--- | Joins two clusters, returns the 'key' that didn't become
--- 'key' of the new cluster as well.  Clusters are not monoid
--- because we don't have 'mempty'.
+-- | /O(1)/. Joins two clusters, returns the 'key' that didn't
+-- become 'key' of the new cluster as well.  Clusters are not
+-- monoid because we don't have 'mempty'.
 merge :: Cluster -> Cluster -> (Cluster, Item)
 merge c1 c2 = let (kl,km) = if key c1 < key c2
                             then (key c1, key c2)
@@ -62,13 +62,13 @@ data DistMatrix s =
        }
 
 
--- | /O(n^2)/ Creates a list of possible combinations between the
--- given elements.
+-- | /O(n^2)/. Creates a list of possible combinations between
+-- the given elements.
 combinations :: [a] -> [(a,a)]
 combinations xs = [(a,b) | (a:as) <- tails xs, b <- as]
 
 
--- | /O(n^2)/ Constructs a new distance matrix from a distance
+-- | /O(n^2)/. Constructs a new distance matrix from a distance
 -- function and a number @n@ of elements.  Elements will be drawn
 -- from @[1..n]@
 fromDistance :: (Item -> Item -> Distance) -> Item -> ST s (DistMatrix s)
@@ -83,7 +83,7 @@ fromDistance dist n = do
               ,clusters = clusters_}
 
 
--- | /O(n^2)/ Returns the minimum distance of the distance
+-- | /O(n^2)/. Returns the minimum distance of the distance
 -- matrix.  The first key given is less than the second key.
 findMin :: DistMatrix s -> ST s ((Cluster, Cluster), Distance)
 findMin dm = readSTRef (active dm) >>= go1
@@ -132,7 +132,7 @@ cdistFakeAverageLinkage = \(_, d1) (_, d2) -> (d1 + d2) / 2
 
 
 
--- | /O(n)/ Merges two clusters, returning the new cluster and
+-- | /O(n)/. Merges two clusters, returning the new cluster and
 -- the new distance matrix.
 mergeClusters :: ClusterDistance
               -> DistMatrix s
@@ -189,30 +189,30 @@ dendrogram' cdist items dist = runST (act ())
                in du `seq` go (i-1) ds''' dm
 
 
--- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
--- of items using single linkage with the naïve algorithm using a
--- distance matrix.
+-- | /O(n^3)/ time and /O(n^2)/ space. Calculates a complete,
+-- rooted dendrogram for a list of items using single linkage
+-- with the naïve algorithm using a distance matrix.
 singleLinkage :: [a] -> (a -> a -> Distance) -> Dendrogram a
 singleLinkage = dendrogram' cdistSingleLinkage
 
 
--- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
--- of items using complete linkage with the naïve algorithm using a
--- distance matrix.
+-- | /O(n^3)/ time and /O(n^2)/ space. Calculates a complete,
+-- rooted dendrogram for a list of items using complete linkage
+-- with the naïve algorithm using a distance matrix.
 completeLinkage :: [a] -> (a -> a -> Distance) -> Dendrogram a
 completeLinkage = dendrogram' cdistCompleteLinkage
 
 
--- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
--- of items using UPGMA with the naïve algorithm using a
--- distance matrix.
+-- | /O(n^3)/ time and /O(n^2)/ space. Calculates a complete,
+-- rooted dendrogram for a list of items using UPGMA with the
+-- naïve algorithm using a distance matrix.
 upgma :: [a] -> (a -> a -> Distance) -> Dendrogram a
 upgma = dendrogram' cdistUPGMA
 
 
--- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
--- of items using fake average linkage with the naïve algorithm
--- using a distance matrix.
+-- | /O(n^3)/ time and /O(n^2)/ space. Calculates a complete,
+-- rooted dendrogram for a list of items using fake average
+-- linkage with the naïve algorithm using a distance matrix.
 fakeAverageLinkage :: [a]
                    -> (a -> a -> Distance) -> Dendrogram a
 fakeAverageLinkage = dendrogram' cdistFakeAverageLinkage
