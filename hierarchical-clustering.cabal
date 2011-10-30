@@ -1,6 +1,6 @@
 Name:                hierarchical-clustering
-Version:             0.3.1.2
-Synopsis:            Algorithms for single, average/UPGMA and complete linkage clustering.
+Version:             0.4
+Synopsis:            Fast algorithms for single, average/UPGMA and complete linkage clustering.
 License:             BSD3
 License-file:        LICENSE
 Author:              Felipe Almeida Lessa
@@ -18,12 +18,29 @@ Description:
   represents not only the clusters but also the order on which
   they were created.
   .
-  This function uses a naïve algorithm that represents distances
-  in a rectangular distance matrix.  There could be space
-  improvements (e.g. using a triangular matrix structure) and
-  time improvements (e.g. using a finger tree to avoid traversing
-  the whole matrix on every iteration just to see what the
-  minimum is).
+  This package has many implementations with different
+  performance characteristics.  There are SLINK and CLINK
+  algorithm implementations that are optimal in both space and
+  time.  There are also naive implementations using a distance
+  matrix.  Using the @dendrogram@ function from
+  @Data.Clustering.Hierarchical@ automatically chooses the best
+  implementation we have.
+  .
+  Changes in version 0.4:
+  .
+  * Specialize the distance type to Double for efficiency reasons.
+    It's uncommon to use distances other than Double.
+  .
+  * Implement SLINK and CLINK.  These are optimal algorithms in
+    both space and time for single and complete linkage,
+    respectively, running in /O(n^2)/ time and /O(n)/ space.
+  .
+  * Reorganized internal implementation.
+  .
+  * Some performance improvements for the naive implementation.
+  .
+  * Better test coverage.  Also, performance improvements for the
+    test suite, now running in 3 seconds (instead of one minute).
   .
   Changes in version 0.3.1.2 (version 0.3.1.1 was skipped):
   .
