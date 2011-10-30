@@ -95,7 +95,7 @@ basicDendrogramTests f = do
   it "fails for an empty input" $
      assertErrors (f [] (\_ _ -> zero))
   it "works for one element" $
-     Leaf () == f [()] (\_ _ -> zero)
+     Leaf () == f [()] undefined
   prop "always returns the elements we gave" $
      \points ->
          not (null points) ==>
