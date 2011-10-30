@@ -3,7 +3,7 @@
 -- from base
 import qualified Control.Exception as E
 import Control.Monad (when)
-import Data.List (delete, sort)
+import Data.List (delete, sort, nub)
 import Text.Printf (printf)
 import Text.Show.Functions ()
 
@@ -101,12 +101,18 @@ basicDendrogramTests f = do
          not (null points) ==>
          elements (f points euclideanDist) `isPermutationOf` points
   prop "works for examples where all elements have the same distance" $
-     \xs fixedDist ->
-         let okay :: Dendrogram Char -> [Char] -> Maybe [Char]
+     \xs' fixedDist ->
+         let xs = nub xs'
+
+             okay :: Dendrogram Char -> [Char] -> Maybe [Char]
              okay (Leaf z)       ys | z `elem` ys    = Just (delete z ys)
              okay (Branch d l r) ys | d ~= fixedDist = okay l ys >>= okay r
              okay _ _ = Nothing
-         in not (null xs) ==> okay (f xs (\_ _ -> fixedDist)) xs == Just []
+
+             dist x y | x == y    = error "shouldn't calculate (dist x x)"
+                      | otherwise = fixedDist
+
+         in not (null xs) ==> okay (f xs dist) xs == Just []
 
 ----------------------------------------------------------------------
 
