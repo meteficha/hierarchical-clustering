@@ -1,8 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 
 module Data.Clustering.Hierarchical.Internal.DistanceMatrix
-    (dendrogram
-    ,singleLinkage
+    (singleLinkage
     ,completeLinkage
     ,upgma
     ,fakeAverageLinkage
@@ -12,7 +11,7 @@ module Data.Clustering.Hierarchical.Internal.DistanceMatrix
 import Control.Monad (forM_)
 import Control.Monad.ST (ST, runST)
 import Data.Array (listArray, (!))
-import Data.Array.ST (STArray, newArray, newListArray, readArray, writeArray)
+import Data.Array.ST (STArray, STUArray, newArray_, newListArray, readArray, writeArray)
 import Data.Function (on)
 import Data.List (delete, tails, (\\))
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef)
@@ -56,10 +55,10 @@ merge c1 c2 = let (kl,km) = if key c1 < key c2
 
 
 -- | A distance matrix.
-data DistMatrix s d =
-    DM { matrix   :: {-# UNPACK #-} !(STArray s (Item, Item) d)
-       , active   :: {-# UNPACK #-} !(STRef   s [Item])
-       , clusters :: {-# UNPACK #-} !(STArray s Item Cluster)
+data DistMatrix s =
+    DM { matrix   :: {-# UNPACK #-} !(STUArray s (Item, Item) Distance)
+       , active   :: {-# UNPACK #-} !(STRef    s [Item])
+       , clusters :: {-# UNPACK #-} !(STArray  s Item Cluster)
        }
 
 
@@ -72,10 +71,10 @@ combinations xs = [(a,b) | (a:as) <- tails xs, b <- as]
 -- | /O(n^2)/ Constructs a new distance matrix from a distance
 -- function and a number @n@ of elements.  Elements will be drawn
 -- from @[1..n]@
-fromDistance :: Ord d => (Item -> Item -> d) -> Item -> ST s (DistMatrix s d)
+fromDistance :: (Item -> Item -> Distance) -> Item -> ST s (DistMatrix s)
 fromDistance _ n | n < 2 = mkErr "fromDistance: n < 2 is meaningless"
 fromDistance dist n = do
-  matrix_ <- newArray ((1,2), (n-1,n)) (mkErr "fromDistance: undef element")
+  matrix_ <- newArray_ ((1,2), (n-1,n))
   active_ <- newSTRef [1..n]
   forM_ (combinations [1..n]) $ \x -> writeArray matrix_ x (uncurry dist x)
   clusters_ <- newListArray (1,n) (map singleton [1..n])
@@ -86,7 +85,7 @@ fromDistance dist n = do
 
 -- | /O(n^2)/ Returns the minimum distance of the distance
 -- matrix.  The first key given is less than the second key.
-findMin :: Ord d => DistMatrix s d -> ST s ((Cluster, Cluster), d)
+findMin :: DistMatrix s -> ST s ((Cluster, Cluster), Distance)
 findMin dm = readSTRef (active dm) >>= go1
     where
       matrix_ = matrix dm
@@ -109,35 +108,34 @@ findMin dm = readSTRef (active dm) >>= go1
 
 -- | Type for functions that calculate distances between
 -- clusters.
-type ClusterDistance d =
-       (Cluster, d)   -- ^ Cluster B1 and distance from A to B1
-    -> (Cluster, d)   -- ^ Cluster B2 and distance from A to B2
-    -> d              -- ^ Distance from A to (B1 U B2).
+type ClusterDistance =
+       (Cluster, Distance) -- ^ Cluster B1 and distance from A to B1
+    -> (Cluster, Distance) -- ^ Cluster B2 and distance from A to B2
+    -> Distance            -- ^ Distance from A to (B1 U B2).
 
 
 -- Some cluster distances
-cdistSingleLinkage      :: Ord d => ClusterDistance d
+cdistSingleLinkage      :: ClusterDistance
 cdistSingleLinkage      = \(_, d1) (_, d2) -> d1 `min` d2
 
-cdistCompleteLinkage    :: Ord d => ClusterDistance d
+cdistCompleteLinkage    :: ClusterDistance
 cdistCompleteLinkage    = \(_, d1) (_, d2) -> d1 `max` d2
 
-cdistUPGMA              :: Fractional d => ClusterDistance d
+cdistUPGMA              :: ClusterDistance
 cdistUPGMA              = \(b1,d1) (b2,d2) ->
                             let n1 = fromIntegral (size b1)
                                 n2 = fromIntegral (size b2)
                             in (n1 * d1 + n2 * d2) / (n1 + n2)
 
-cdistFakeAverageLinkage :: Fractional d => ClusterDistance d
+cdistFakeAverageLinkage :: ClusterDistance
 cdistFakeAverageLinkage = \(_, d1) (_, d2) -> (d1 + d2) / 2
 
 
 
 -- | /O(n)/ Merges two clusters, returning the new cluster and
 -- the new distance matrix.
-mergeClusters :: (Ord d)
-              => ClusterDistance d
-              -> DistMatrix s d
+mergeClusters :: ClusterDistance
+              -> DistMatrix s
               -> (Cluster, Cluster)
               -> ST s Cluster
 mergeClusters cdist (DM matrix_ active_ clusters_) (b1, b2) = do
@@ -168,8 +166,7 @@ mergeClusters cdist (DM matrix_ active_ clusters_) (b1, b2) = do
 
 -- | Worker function to create dendrograms based on a
 -- 'ClusterDistance'.
-dendrogram' :: Ord d => ClusterDistance d
-            -> [a] -> (a -> a -> d) -> Dendrogram d a
+dendrogram' :: ClusterDistance -> [a] -> (a -> a -> Distance) -> Dendrogram a
 dendrogram' _ []  _ = mkErr "dendrogram': empty input list"
 dendrogram' _ [x] _ = Leaf x
 dendrogram' cdist items dist = runST (act ())
@@ -193,45 +190,29 @@ dendrogram' cdist items dist = runST (act ())
 
 
 -- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
--- of items and a linkage type.  If your distance type has an
--- 'Ord' instance but not a 'Fractional' one, then please use
--- specific functions 'singleLinkage' or 'completeLinkage' that
--- have less restrictive types.
-dendrogram :: (Ord d, Fractional d)
-           => Linkage        -- ^ Linkage type to be used.
-           -> [a]            -- ^ Items to be clustered.
-           -> (a -> a -> d)  -- ^ Distance function between items.
-           -> Dendrogram d a -- ^ Complete dendrogram.
-dendrogram linkage = dendrogram' cdist
-    where
-      cdist = case linkage of
-                SingleLinkage      -> cdistSingleLinkage
-                CompleteLinkage    -> cdistCompleteLinkage
-                FakeAverageLinkage -> cdistFakeAverageLinkage
-                UPGMA              -> cdistUPGMA
-
-
--- | /O(n^3)/ Like 'dendrogram', but specialized to single
--- linkage (see 'SingleLinkage') which does not require
--- 'Fractional'.
-singleLinkage :: Ord d => [a] -> (a -> a -> d) -> Dendrogram d a
+-- of items using single linkage with the naïve algorithm using a
+-- distance matrix.
+singleLinkage :: [a] -> (a -> a -> Distance) -> Dendrogram a
 singleLinkage = dendrogram' cdistSingleLinkage
 
 
--- | /O(n^3)/ Like 'dendrogram', but specialized to complete
--- linkage (see 'CompleteLinkage') which does not require
--- 'Fractional'.
-completeLinkage :: Ord d => [a] -> (a -> a -> d) -> Dendrogram d a
+-- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
+-- of items using complete linkage with the naïve algorithm using a
+-- distance matrix.
+completeLinkage :: [a] -> (a -> a -> Distance) -> Dendrogram a
 completeLinkage = dendrogram' cdistCompleteLinkage
 
 
--- | /O(n^3)/ Like 'dendrogram', but specialized to 'UPGMA'.
-upgma :: (Fractional d, Ord d) => [a] -> (a -> a -> d) -> Dendrogram d a
+-- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
+-- of items using UPGMA with the naïve algorithm using a
+-- distance matrix.
+upgma :: [a] -> (a -> a -> Distance) -> Dendrogram a
 upgma = dendrogram' cdistUPGMA
 
 
--- | /O(n^3)/ Like 'dendrogram', but specialized to fake average
--- linkage (see 'FakeAverageLinkage').
-fakeAverageLinkage :: (Fractional d, Ord d) => [a]
-                   -> (a -> a -> d) -> Dendrogram d a
+-- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
+-- of items using fake average linkage with the naïve algorithm
+-- using a distance matrix.
+fakeAverageLinkage :: [a]
+                   -> (a -> a -> Distance) -> Dendrogram a
 fakeAverageLinkage = dendrogram' cdistFakeAverageLinkage

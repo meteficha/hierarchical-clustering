@@ -34,8 +34,8 @@ type Index = Int
 
 data PointerRepresentation s a =
   PR { pi     :: {-# UNPACK #-} !(STUArray s Index Index)
-     , lambda :: {-# UNPACK #-} !(STUArray s Index Double)
-     , em     :: {-# UNPACK #-} !(STUArray s Index Double)
+     , lambda :: {-# UNPACK #-} !(STUArray s Index Distance)
+     , em     :: {-# UNPACK #-} !(STUArray s Index Distance)
      , elm    :: {-# UNPACK #-} !(Array Index a)
      }
 
@@ -53,8 +53,8 @@ debugPR pr = do
 initPR :: Index -> Array Index a -> ST s (PointerRepresentation s a)
 initPR n xs' = ($ xs') <$> liftM3 PR (newArray_ (1, n)) (newArray_ (1, n)) (newArray_ (1, n))
 
-indexDistance :: [a] -> (a -> a -> Double)
-              -> (Index, Array Index a, Index -> Index -> Double)
+indexDistance :: [a] -> (a -> a -> Distance)
+              -> (Index, Array Index a, Index -> Index -> Distance)
 indexDistance xs dist = (n, xs', dist')
     where
       !n = length xs
@@ -62,12 +62,12 @@ indexDistance xs dist = (n, xs', dist')
       dist' i j = dist (xs' ! i) (xs' ! j)
 
 
-infinity :: Double
+infinity :: Distance
 infinity = 1 / 0
 
 
--- | /O(n^2)/  See 'singleLinkage' on this module.
-slink :: [a] -> (a -> a -> Double) -> ST s (PointerRepresentation s a)
+-- | /O(n^2)/ time and /O(n)/ space.  See 'singleLinkage' on this module.
+slink :: [a] -> (a -> a -> Distance) -> ST s (PointerRepresentation s a)
 slink xs dist = initPR n xs' >>= go 1
     where
       (n, xs', dist') = indexDistance xs dist
@@ -98,8 +98,8 @@ slink xs dist = initPR n xs' >>= go 1
         go (i+1) pr
 
 
--- | /O(n^2)/  See 'completeLinkage' on this module.
-clink :: [a] -> (a -> a -> Double) -> ST s (PointerRepresentation s a)
+-- | /O(n^2)/ time and /O(n)/ space. See 'completeLinkage' on this module.
+clink :: [a] -> (a -> a -> Distance) -> ST s (PointerRepresentation s a)
 clink xs dist = initPR n xs' >>= go 1
     where
       (n, xs', dist') = indexDistance xs dist
@@ -175,9 +175,10 @@ clink xs dist = initPR n xs' >>= go 1
                             return ()
 
 
--- | /O(n log n)/ Construct a 'Dendrogram' from a 'PointerRepresentation'.
+-- | /O(n log n)/ time and /O(n)/ space. Construct a 'Dendrogram'
+-- from a 'PointerRepresentation'.
 buildDendrogram :: PointerRepresentation s a
-                -> ST s (Dendrogram Double a)
+                -> ST s (Dendrogram a)
 buildDendrogram pr = do
   (1,n) <- getBounds (lambda pr)
   lambdas <- getElems (lambda pr)
@@ -208,30 +209,29 @@ buildDendrogram pr = do
   go IM.empty (zip [1..n-1] sorted)
 
 
--- | /O(n^2)/ Calculates a complete, rooted dendrogram for a list
--- of items using single linkage with the SLINK algorithm.  This
--- algorithm is optimal in space and time.  This implementation
--- is specialized to 'Double' for efficiency.
+-- | /O(n^2)/ time and /O(n)/ space. Calculates a complete,
+-- rooted dendrogram for a list of items using single linkage
+-- with the SLINK algorithm.  This algorithm is optimal in space
+-- and time.
 --
 -- [Reference] R. Sibson (1973). \"SLINK: an optimally efficient
 --   algorithm for the single-link cluster method\". /The/
 --   /Computer Journal/ (British Computer Society) 16 (1):
 --   30-34.
-singleLinkage :: [a] -> (a -> a -> Double) -> Dendrogram Double a
+singleLinkage :: [a] -> (a -> a -> Distance) -> Dendrogram a
 singleLinkage []  _   = mkErr "singleLinkage: empty input"
 singleLinkage [x] _   = Leaf x
 singleLinkage xs dist = runST (slink xs dist >>= buildDendrogram)
 
 
--- | /O(n^2)/ Calculates a complete, rooted dendrogram for a list
+-- | /O(n^2)/ time and /O(n)/ space. Calculates a complete, rooted dendrogram for a list
 -- of items using complete linkage with the CLINK algorithm.  This
--- algorithm is optimal in space and time.  This implementation
--- is specialized to 'Double' for efficiency.
+-- algorithm is optimal in space and time.
 --
 -- [Reference] D. Defays (1977). \"An efficient algorithm for a
 --   complete link method\". /The Computer Journal/ (British
 --   Computer Society) 20 (4): 364-366.
-completeLinkage :: [a] -> (a -> a -> Double) -> Dendrogram Double a
+completeLinkage :: [a] -> (a -> a -> Distance) -> Dendrogram a
 completeLinkage []  _   = mkErr "completeLinkage: empty input"
 completeLinkage [x] _   = Leaf x
 completeLinkage xs dist = runST (clink xs dist >>= buildDendrogram)

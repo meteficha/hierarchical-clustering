@@ -1,6 +1,7 @@
 module Data.Clustering.Hierarchical.Internal.Types
     ( Dendrogram(..)
     , Linkage(..)
+    , Distance
     ) where
 
 -- from base
@@ -14,24 +15,27 @@ import Data.Traversable (Traversable(..))
 -- Distances between leafs are the distances between the elements
 -- on those leafs, while distances between branches are defined
 -- by the linkage used (see 'Linkage').
-data Dendrogram d a =
+data Dendrogram a =
     Leaf a
     -- ^ The leaf contains the item @a@ itself.
-  | Branch d (Dendrogram d a) (Dendrogram d a)
+  | Branch {-# UNPACK #-} !Distance (Dendrogram a) (Dendrogram a)
     -- ^ Each branch connects two clusters/dendrograms that are
     -- @d@ distance apart.
     deriving (Eq, Ord, Show)
 
+-- | A distance is simply a synonym of 'Double' for efficiency.
+type Distance = Double
+
 -- | Does not recalculate the distances!
-instance Functor (Dendrogram d) where
+instance Functor Dendrogram where
     fmap f (Leaf d)         = Leaf (f d)
     fmap f (Branch s c1 c2) = Branch s (fmap f c1) (fmap f c2)
 
-instance Foldable (Dendrogram d) where
+instance Foldable Dendrogram where
     foldMap f (Leaf d)         = f d
     foldMap f (Branch _ c1 c2) = foldMap f c1 `mappend` foldMap f c2
 
-instance Traversable (Dendrogram d) where
+instance Traversable Dendrogram where
     traverse f (Leaf d)         = Leaf <$> f d
     traverse f (Branch s c1 c2) = Branch s <$> traverse f c1 <*> traverse f c2
 

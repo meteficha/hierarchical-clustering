@@ -32,7 +32,7 @@ main = hspecX $ do
 test_cutAt :: Specs
 test_cutAt =
     describe "cutAt" $ do
-      let dendro      :: Dendrogram Double Char
+      let dendro      :: Dendrogram Char
           dendro      = Branch 0.8 d_0_8_left d_0_8_right
           d_0_8_left  =   Branch 0.5 d_0_5_left d_0_5_right
           d_0_5_left  =     Branch 0.2 d_0_2_left d_0_2_right
@@ -75,7 +75,7 @@ test_dendrogram = do
       prop "agree on completeLinkage" $ test O.completeLinkage DM.completeLinkage
 
 
-basicDendrogramTests :: (forall a. [a] -> (a -> a -> Double) -> Dendrogram Double a) -> Specs
+basicDendrogramTests :: (forall a. [a] -> (a -> a -> Double) -> Dendrogram a) -> Specs
 basicDendrogramTests f = do
   it "fails for an empty input" $
      assertErrors (f [] (\_ _ -> zero))
@@ -87,7 +87,7 @@ basicDendrogramTests f = do
          elements (f points euclideanDist) `isPermutationOf` points
   prop "works for examples where all elements have the same distance" $
      \xs fixedDist ->
-         let okay :: Dendrogram Double Char -> [Char] -> Maybe [Char]
+         let okay :: Dendrogram Char -> [Char] -> Maybe [Char]
              okay (Leaf z)       ys | z `elem` ys    = Just (delete z ys)
              okay (Branch d l r) ys | d ~= fixedDist = okay l ys >>= okay r
              okay _ _ = Nothing
@@ -116,7 +116,7 @@ assertErrors x = do
 
 -- | Compare two dendrograms without being concerned about
 -- permutations.
-(====) :: Eq a => Dendrogram Double a -> Dendrogram Double a -> Bool
+(====) :: Eq a => Dendrogram a -> Dendrogram a -> Bool
 Leaf x1         ==== Leaf x2         = x1 == x2
 Branch d1 l1 r1 ==== Branch d2 l2 r2 = d1 ~= d2 && ((l1 ==== l2 && r1 ==== r2) ||
                                                     (l1 ==== r2 && r1 ==== l2))
