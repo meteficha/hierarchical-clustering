@@ -2,7 +2,7 @@
 
 -- from base
 import qualified Control.Exception as E
-import Control.Monad (when)
+import Control.Monad (when, liftM2)
 import Data.List (delete, sort, nub)
 import Text.Printf (printf)
 import Text.Show.Functions ()
@@ -16,7 +16,7 @@ import Test.Hspec.QuickCheck (prop)
 import Test.HUnit
 
 -- from QuickCheck
-import Test.QuickCheck ((==>), Property)
+import Test.QuickCheck (Property, Arbitrary(..), Gen, forAll)
 
 -- from this package
 import Data.Clustering.Hierarchical
@@ -84,8 +84,8 @@ test_dendrogram = do
       basicDendrogramTests DM.fakeAverageLinkage
 
     describe "Optimal and DistanceMatrix" $ do
-      let test f1 f2 = \ps -> length ps >= 2 ==>
-                              f1 ps euclideanDist ==== f2 ps euclideanDist
+      let test f1 f2 = forAll nonNullLists $ \ps ->
+                       f1 ps euclideanDist ==== f2 ps euclideanDist
       prop "agree on singleLinkage"   $ test O.singleLinkage   DM.singleLinkage
       prop "agree on completeLinkage" $ test O.completeLinkage DM.completeLinkage
 
@@ -97,11 +97,11 @@ basicDendrogramTests f = do
   it "works for one element" $
      Leaf () == f [()] undefined
   prop "always returns the elements we gave" $
-     \points ->
-         not (null points) ==>
-         elements (f points euclideanDist) `isPermutationOf` points
+     forAll nonNullLists $ \points ->
+       elements (f points euclideanDist) `isPermutationOf` points
   prop "works for examples where all elements have the same distance" $
-     \xs' fixedDist ->
+     \fixedDist ->
+     forAll nonNullLists $ \xs' ->
          let xs = nub xs'
 
              okay :: Dendrogram Char -> [Char] -> Maybe [Char]
@@ -112,7 +112,7 @@ basicDendrogramTests f = do
              dist x y | x == y    = error "shouldn't calculate (dist x x)"
                       | otherwise = fixedDist
 
-         in not (null xs) ==> okay (f xs dist) xs == Just []
+         in okay (f xs dist) xs == Just []
 
 ----------------------------------------------------------------------
 
@@ -120,9 +120,9 @@ type P = (Double, Double)
 
 propCorrectLinkage :: ([P] -> (P -> P -> Distance) -> Dendrogram P)
                    -> (D P -> [P] -> [P] -> Distance)
-                   -> ([P] -> Property)
+                   -> Property
 propCorrectLinkage f link =
-    \xs -> length xs >= 2 ==> correctLinkage link d (f xs d)
+    forAll nonNullLists $ \xs -> correctLinkage link d (f xs d)
         where d = euclideanDist
 
 type D a = a -> a -> Distance
@@ -141,6 +141,9 @@ upgma        dist xs ys = sum [x `dist` y | x <- xs, y <- ys] /
                           fromIntegral (length xs * length ys)
 
 ----------------------------------------------------------------------
+
+nonNullLists :: Arbitrary a => Gen [a]
+nonNullLists = liftM2 (:) arbitrary arbitrary
 
 isPermutationOf :: Ord a => [a] -> [a] -> Bool
 isPermutationOf xs ys = sort xs == sort ys
