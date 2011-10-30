@@ -8,7 +8,7 @@ module Data.Clustering.Hierarchical.Internal.DistanceMatrix
     ,fakeAverageLinkage
     ) where
 
-import qualified Data.IntMap as IM
+-- from base
 import Control.Monad (forM_, when)
 import Control.Monad.ST (ST, runST)
 import Data.Array (listArray, (!))
@@ -16,6 +16,9 @@ import Data.Array.ST (STArray, newArray, newListArray, readArray, writeArray)
 import Data.Function (on)
 import Data.List (delete, tails)
 import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef)
+
+-- from containers
+import qualified Data.IntMap as IM
 
 -- from this package
 import Data.Clustering.Hierarchical.Internal.Types
@@ -25,10 +28,9 @@ mkErr = error . ("Data.Clustering.Hierarchical.Internal.DistanceMatrix." ++)
 
 -- | Internal (to this package) type used to represent a cluster
 -- (of possibly just one element).  The @key@ should be less than
--- or equal to all @more@ elements.
-data Cluster = Cluster {key  :: !Item  -- ^ Element used as key.
-                       ,more :: [Item] -- ^ Other elements in the cluster.
-                       ,size :: !Int   -- ^ At least one, the @key@.
+-- or equal to all elements of the cluster.
+data Cluster = Cluster { key  :: {-# UNPACK #-} !Item  -- ^ Element used as key.
+                       , size :: {-# UNPACK #-} !Int   -- ^ At least one, the @key@.
                        }
                deriving (Eq, Ord, Show)
 
@@ -37,7 +39,7 @@ type Item = IM.Key
 
 -- | Creates a singleton cluster.
 singleton :: Item -> Cluster
-singleton k = Cluster {key = k, more = [], size = 1}
+singleton k = Cluster {key = k, size = 1}
 
 -- | Joins two clusters, returns the 'key' that didn't become
 -- 'key' of the new cluster as well.  Clusters are not monoid
@@ -47,7 +49,6 @@ merge c1 c2 = let (kl,km) = if key c1 < key c2
                             then (key c1, key c2)
                             else (key c2, key c1)
               in (Cluster {key  = kl
-                          ,more = km : more c1 ++ more c2
                           ,size = size c1 + size c2}
                  ,km)
 
@@ -55,9 +56,11 @@ merge c1 c2 = let (kl,km) = if key c1 < key c2
 
 
 -- | A distance matrix.
-data DistMatrix s d = DM {matrix   :: STArray s (Item, Item) d
-                         ,active   :: STRef   s [Item]
-                         ,clusters :: STArray s Item Cluster}
+data DistMatrix s d =
+    DM { matrix   :: {-# UNPACK #-} !(STArray s (Item, Item) d)
+       , active   :: {-# UNPACK #-} !(STRef   s [Item])
+       , clusters :: {-# UNPACK #-} !(STArray s Item Cluster)
+       }
 
 
 -- | /O(n^2)/ Creates a list of possible combinations between the
@@ -166,22 +169,19 @@ dendrogram' cdist items dist = runST (act ())
       n = length items
       act _noMonomorphismRestrictionPlease = do
         let xs = listArray (1, n) items
-        fromDistance (dist `on` (xs !)) n >>= go xs (n-1) IM.empty
-      go !xs !i !ds !dm = do
-        ((c1,c2), !distance) <- findMin dm
+            im = IM.fromDistinctAscList $ zip [1..] $ map Leaf items
+        fromDistance (dist `on` (xs !)) n >>= go (n-1) im
+      go !i !ds !dm = do
+        ((c1,c2), distance) <- findMin dm
         cu <- mergeClusters cdist dm (c1,c2)
-        let dendro c = case size c of
-                         1 -> Leaf $! xs ! key c
-                         _ -> ds IM.! key c
-            !d1 = dendro c1
-            !d2 = dendro c2
-            du  = Branch distance d1 d2
+        let dendro c = IM.updateLookupWithKey (\_ _ -> Nothing) (key c)
+            (Just d1, !ds')  = dendro c1 ds
+            (Just d2, !ds'') = dendro c2 ds'
+            du = Branch distance d1 d2
         case i of
           1 -> return du
-          _ -> let ds' = IM.insert (key cu) du $
-                         IM.delete (key c1) $
-                         IM.delete (key c2) ds
-               in du `seq` go xs (i-1) ds' dm
+          _ -> let !ds''' = IM.insert (key cu) du ds''
+               in du `seq` go (i-1) ds''' dm
 
 
 -- | /O(n^3)/ Calculates a complete, rooted dendrogram for a list
