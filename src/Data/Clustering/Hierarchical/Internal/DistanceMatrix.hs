@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Data.Clustering.Hierarchical.Internal.DistanceMatrix
     (dendrogram
     ,singleLinkage
@@ -88,11 +90,10 @@ findMin dm = readSTRef (active dm) >>= go1 . combinations
       choose b i m' = if m' < snd b then (i, m') else b
       go1 (i:is)   = readArray matrix_ i >>= go2 is . (,) i
       go1 []       = mkErr "findMin: empty DistMatrix"
-      go2 i b | i `seq` b `seq` False = undefined
-      go2 (i:is) b = readArray matrix_ i >>= go2 is . choose b i
-      go2 []     b = do c1 <- readArray (clusters dm) (fst $ fst b)
-                        c2 <- readArray (clusters dm) (snd $ fst b)
-                        return ((c1, c2), snd b)
+      go2 (i:is) !b = readArray matrix_ i >>= go2 is . choose b i
+      go2 []     !b = do c1 <- readArray (clusters dm) (fst $ fst b)
+                         c2 <- readArray (clusters dm) (snd $ fst b)
+                         return ((c1, c2), snd b)
 
 
 -- | Type for functions that calculate distances between
@@ -143,7 +144,7 @@ mergeClusters cdist (DM matrix_ active_ clusters_) (b1, b2) = do
       d_a_b1 <- readArray matrix_ $ ix k b1k
       d_a_b2 <- readArray matrix_ $ ix k b2k
       let d = cdist (b1, d_a_b1) (b2, d_a_b2)
-      d `seq` writeArray matrix_ (ix k km) d
+      writeArray matrix_ (ix k km) $! d
 
   -- Save new cluster, invalidate old one
   writeArray clusters_ km bu
@@ -166,15 +167,15 @@ dendrogram' cdist items dist = runST (act ())
       act _noMonomorphismRestrictionPlease = do
         let xs = listArray (1, n) items
         fromDistance (dist `on` (xs !)) n >>= go xs (n-1) IM.empty
-      go xs i ds dm = xs `seq` i `seq` ds `seq` dm `seq` do
-        ((c1,c2), distance) <- findMin dm
+      go !xs !i !ds !dm = do
+        ((c1,c2), !distance) <- findMin dm
         cu <- mergeClusters cdist dm (c1,c2)
         let dendro c = case size c of
                          1 -> Leaf $! xs ! key c
                          _ -> ds IM.! key c
-            d1 = dendro c1
-            d2 = dendro c2
-            du = d1 `seq` d2 `seq` Branch distance d1 d2
+            !d1 = dendro c1
+            !d2 = dendro c2
+            du  = Branch distance d1 d2
         case i of
           1 -> return du
           _ -> let ds' = IM.insert (key cu) du $
