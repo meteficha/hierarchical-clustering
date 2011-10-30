@@ -8,12 +8,12 @@ import Text.Printf (printf)
 import Text.Show.Functions ()
 
 -- from hspec
-import Test.Hspec.Monadic
+import Test.Hspec.Monadic (hspecX, describe, it, pending, Specs)
 import Test.Hspec.HUnit ()
 import Test.Hspec.QuickCheck (prop)
 
 -- from HUnit
-import Test.HUnit
+import Test.HUnit ((~?=), Assertion, assertFailure)
 
 -- from QuickCheck
 import Test.QuickCheck (Property, Arbitrary(..), Gen, forAll)

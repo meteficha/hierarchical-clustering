@@ -15,7 +15,7 @@ import Control.Monad.ST (ST, runST)
 import Data.Array (Array, listArray, (!))
 import Data.Array.ST (STUArray, newArray_, newListArray,
                       readArray, writeArray,
-                      getAssocs, getElems, getBounds)
+                      getElems, getBounds) -- getAssocs
 import Data.List (sortBy)
 import Data.Maybe (fromMaybe)
 
@@ -39,16 +39,16 @@ data PointerRepresentation s a =
      , elm    :: {-# UNPACK #-} !(Array Index a)
      }
 
-debugPR :: Show a => PointerRepresentation s a -> ST s String
-debugPR pr = do
-  pis     <- getAssocs (pi pr)
-  lambdas <- getAssocs (lambda pr)
-  ems     <- getAssocs (em pr)
-  return $ unlines [ "pi     = " ++ show pis
-                   , "lambda = " ++ show lambdas
-                   , "em     = " ++ show ems
-                   , "elm    = " ++ show (elm pr)
-                   ]
+-- debugPR :: Show a => PointerRepresentation s a -> ST s String
+-- debugPR pr = do
+--   pis     <- getAssocs (pi pr)
+--   lambdas <- getAssocs (lambda pr)
+--   ems     <- getAssocs (em pr)
+--   return $ unlines [ "pi     = " ++ show pis
+--                    , "lambda = " ++ show lambdas
+--                    , "em     = " ++ show ems
+--                    , "elm    = " ++ show (elm pr)
+--                    ]
 
 initPR :: Index -> Array Index a -> ST s (PointerRepresentation s a)
 initPR n xs' = ($ xs') <$> liftM3 PR (newArray_ (1, n)) (newArray_ (1, n)) (newArray_ (1, n))
