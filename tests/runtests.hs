@@ -89,7 +89,7 @@ test_dendrogram = do
       prop "agree on singleLinkage"   $ test O.singleLinkage DM.singleLinkage
       it "agree on completeLinkage" $
          pending "This doesn't work because CLINK doesn't \
-                 \always give the best compete linkage."
+                 \always give the best complete linkage."
 
 
 basicDendrogramTests :: (forall a. [a] -> (a -> a -> Distance) -> Dendrogram a) -> Specs
