@@ -1,0 +1,3 @@
+ - Implement O(n^2) algorithm in [1].
+
+[1] http://thames.cs.rhul.ac.uk/~fionn/old-articles/complexities/
