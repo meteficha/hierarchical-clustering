@@ -98,7 +98,7 @@ Test-suite runtests
   Build-depends:
       base       == 4.*
 
-    , hspec      == 0.9.*
+    , hspec      >= 0.9 && < 1.2
     , HUnit      == 1.2.*
     , QuickCheck == 2.4.*
 
