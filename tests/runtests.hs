@@ -8,12 +8,11 @@ import Text.Printf (printf)
 import Text.Show.Functions ()
 
 -- from hspec
-import Test.Hspec.Monadic (hspecX, describe, it, pending, Specs)
-import Test.Hspec.HUnit ()
+import Test.Hspec (hspec, describe, it, pendingWith, shouldBe, Spec)
 import Test.Hspec.QuickCheck (prop)
 
 -- from HUnit
-import Test.HUnit ((~?=), Assertion, assertFailure)
+import Test.HUnit (Assertion, assertFailure)
 
 -- from QuickCheck
 import Test.QuickCheck (Property, Arbitrary(..), Gen, forAll)
@@ -25,11 +24,11 @@ import qualified Data.Clustering.Hierarchical.Internal.Optimal as O
 
 
 main :: IO ()
-main = hspecX $ do
+main = hspec $ do
          test_cutAt
          test_dendrogram
 
-test_cutAt :: Specs
+test_cutAt :: Spec
 test_cutAt =
     describe "cutAt" $ do
       let dendro      :: Dendrogram Char
@@ -43,7 +42,7 @@ test_cutAt =
 
       let testFor threshold expected =
               it (printf "works for 'dendro' with threshold %0.1f" threshold) $
-                 dendro `cutAt` threshold ~?= expected
+                 dendro `cutAt` threshold `shouldBe` expected
 
       testFor 0.9 [dendro]
       testFor 0.8 [dendro]
@@ -53,7 +52,7 @@ test_cutAt =
       testFor 0.2 [d_0_5_left, d_0_5_right, d_0_8_right]
       testFor 0.1 [d_0_2_left, d_0_2_right, d_0_5_right, d_0_8_right]
 
-test_dendrogram :: Specs
+test_dendrogram :: Spec
 test_dendrogram = do
     describe "Optimal's singleLinkage" $ do
       basicDendrogramTests O.singleLinkage
@@ -88,11 +87,11 @@ test_dendrogram = do
                        f1 ps euclideanDist ==== f2 ps euclideanDist
       prop "agree on singleLinkage"   $ test O.singleLinkage DM.singleLinkage
       it "agree on completeLinkage" $
-         pending "This doesn't work because CLINK doesn't \
-                 \always give the best complete linkage."
+         pendingWith "This doesn't work because CLINK doesn't \
+                     \always give the best complete linkage."
 
 
-basicDendrogramTests :: (forall a. [a] -> (a -> a -> Distance) -> Dendrogram a) -> Specs
+basicDendrogramTests :: (forall a. [a] -> (a -> a -> Distance) -> Dendrogram a) -> Spec
 basicDendrogramTests f = do
   it "fails for an empty input" $
      assertErrors (f [] (\_ _ -> zero))

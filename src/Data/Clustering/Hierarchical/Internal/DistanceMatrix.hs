@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts #-}
 
 module Data.Clustering.Hierarchical.Internal.DistanceMatrix
     (singleLinkage

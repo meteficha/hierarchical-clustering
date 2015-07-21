@@ -87,7 +87,7 @@ Library
     Data.Clustering.Hierarchical.Internal.Types
   Build-depends:
       base       == 4.*
-    , array      >= 0.3 && < 0.5
+    , array      >= 0.3 && < 0.6
     , containers >= 0.3 && < 0.6
   GHC-options: -Wall
 
@@ -98,9 +98,9 @@ Test-suite runtests
   Build-depends:
       base       == 4.*
 
-    , hspec      >= 0.9 && < 1.2
-    , HUnit      == 1.2.*
-    , QuickCheck == 2.4.*
+    , hspec      >= 2.1
+    , HUnit      >= 1.2
+    , QuickCheck >= 2.4
 
     , hierarchical-clustering
   GHC-options: -Wall

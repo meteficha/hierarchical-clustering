@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts #-}
 
 -- | Implementations that are optimal in space and time.
 module Data.Clustering.Hierarchical.Internal.Optimal
