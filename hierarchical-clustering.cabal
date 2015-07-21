@@ -75,7 +75,7 @@ Extra-source-files:
 
 Source-repository head
   type: darcs
-  location: http://patch-tag.com/r/felipe/hierarchical-clustering
+  location: https://github.com/meteficha/hierarchical-clustering
 
 
 Library
