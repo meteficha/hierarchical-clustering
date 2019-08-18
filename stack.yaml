@@ -1,1 +1,4 @@
-resolver: nightly-2015-06-09
+# https://docs.haskellstack.org/en/stable/yaml_configuration/
+resolver: lts-13.27
+packages:
+- .
