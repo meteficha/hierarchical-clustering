@@ -180,7 +180,8 @@ clink xs dist = initPR n xs' >>= go 1
 buildDendrogram :: PointerRepresentation s a
                 -> ST s (Dendrogram a)
 buildDendrogram pr = do
-  (1,n) <- getBounds (lambda pr)
+  bounds <- getBounds (lambda pr)
+  let (1,n) = bounds
   lambdas <- getElems (lambda pr)
   pis     <- getElems (pi pr)
   let sorted = sortBy (\(_,l1,_) (_,l2,_) -> l1 `compare` l2) $
